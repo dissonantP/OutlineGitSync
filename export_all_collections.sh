@@ -191,11 +191,11 @@ fi
 log "Export queued as file operation $file_operation_id"
 
 if [[ -z "$OUTPUT_PATH" ]]; then
-  OUTPUT_PATH="$(pwd)/outline-export.zip"
+  OUTPUT_PATH="${HOME}/outline-export.zip"
 fi
 
 if [[ -z "$EXTRACT_DIR" ]]; then
-  EXTRACT_DIR="$(pwd)/outline-export"
+  EXTRACT_DIR="${HOME}/outline-export"
 fi
 
 rm -f "$OUTPUT_PATH"
