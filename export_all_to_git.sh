@@ -35,19 +35,14 @@ log() {
 }
 
 cleanup() {
-  :
+  if [[ -n "${staging_dir:-}" && -d "${staging_dir:-}" ]]; then
+    rm -rf "$staging_dir"
+  fi
 }
 trap cleanup EXIT
 
 export_dir=""
-
-log "Running Outline export"
-export_dir="$("$EXPORT_SCRIPT")"
-
-if [[ ! -d "$export_dir" ]]; then
-  echo "Export script did not produce a directory: $export_dir" >&2
-  exit 1
-fi
+staging_dir=""
 
 repo_dir="$REPO_DIR"
 
@@ -79,20 +74,34 @@ if [[ -z "$OUTLINE_GIT_BRANCH" ]]; then
 fi
 
 if [[ "$DEBUG" == "1" ]]; then
-  log "Syncing export from $export_dir into $repo_dir"
+  log "Preparing export staging inside $repo_dir"
+fi
+
+staging_dir="$(mktemp -d "${repo_dir%/}/.outline-sync-export.XXXXXX")"
+export_dir="${staging_dir}/extract"
+
+log "Running Outline export"
+OUTPUT_PATH="${staging_dir}/export.zip" EXTRACT_DIR="$export_dir" "$EXPORT_SCRIPT" >/dev/null
+
+if [[ ! -d "$export_dir" ]]; then
+  echo "Export script did not produce a directory: $export_dir" >&2
+  exit 1
 fi
 
 log "Using git worktree $(git -C "$repo_dir" rev-parse --show-toplevel)"
 log "Using git fetch remote $(git -C "$repo_dir" remote get-url origin)"
 log "Using git push remote $(git -C "$repo_dir" remote get-url --push origin)"
 
-find "$repo_dir" -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
-rsync -a --delete --exclude='.git' "${export_dir}/" "${repo_dir}/"
+find "$repo_dir" -mindepth 1 -maxdepth 1 ! -name '.git' ! -name "$(basename "$staging_dir")" -exec rm -rf {} +
+rsync -a --delete --exclude='.git' --exclude="$(basename "$staging_dir")" "${export_dir}/" "${repo_dir}/"
 
 if [[ ! -d "$repo_dir/.git" ]]; then
   echo "Repository metadata was lost during sync: $repo_dir/.git is missing." >&2
   exit 1
 fi
+
+rm -rf "$staging_dir"
+staging_dir=""
 
 git -C "$repo_dir" config user.name "$GIT_AUTHOR_NAME"
 git -C "$repo_dir" config user.email "$GIT_AUTHOR_EMAIL"
