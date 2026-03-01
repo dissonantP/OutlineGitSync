@@ -1,5 +1,11 @@
 # Outline Git Sync
 
+This repo provides some scripts to export full workspace data from [Outline](https://www.getoutline.com/) and back it up using version control on Github.
+
+It is a one-way sync only (Outline => Local or Outline => Github), and does _not_ support updating your Outline database.
+
+If you want to update Outline, [they offer an API](https://www.getoutline.com/developers) and there's also an MCP out there. 
+
 ## Scripts
 
 ### `export_all_collections.sh`
